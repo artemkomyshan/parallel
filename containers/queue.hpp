@@ -55,7 +55,7 @@ inline
 void queue<T>::wait_and_pop( T& value )
 {
    std::unique_lock<std::mutex> lk( _mut );
-   _cond.wait( lk, []{ return !_q.empty();}
+   _cond.wait( lk, []{ return !_q.empty(); };
    value = _q.front();
    _q.pop();
 }
@@ -65,7 +65,7 @@ inline
 std::shared_ptr<T> queue<T>::wait_and_pop()
 {
    std::unique_lock<std::mutex> lk( _mut );
-   _cond.wait( lk, []{ return !_q.empty();}
+   _cond.wait( lk, []{ return !_q.empty(); };
    auto res = std::make_shared<T>( _q.front() );
    _q.pop();
    return res;
