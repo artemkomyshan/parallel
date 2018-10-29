@@ -1,6 +1,6 @@
 #include <iostream>
 //#include "utility/sequence.hpp"
-#include "utility/lock_guards.hpp"
+#include "utility/multi_lock.hpp"
 
 using namespace std;
 
@@ -76,7 +76,9 @@ int main()
    std::mutex m3;
    s m1;
 
-   std_ext::lock_guards guards(m1, m2, m3);
+   auto guards = std_ext::make_locks(m1, m2, m3);
+
+   //std::lock_guard<std::mutex> lg (m2);
 
    //int f = 5; auto tuple_ptr = std::tuple<adopt_lock_guard, adopt_lock_guard>(f, f);
 
