@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 #include "queue.hpp"
-#include "utility/thread_raii.hpp"
+#include "raii/scoped_thread.hpp"
 
 namespace parallel {
 
@@ -14,7 +14,7 @@ class thread_pool
    using tTask = std::function<void(void)>;
 
    std::atomic_bool _done {false};
-   std::vector<thread_raii> _threds;
+   std::vector<raii::join_thread> _threds;
    queue<tTask> _work_q;
 
    void worker_thred()
@@ -57,4 +57,5 @@ public:
 };
 
 }
+
 #endif // THREAD_POOL_HPP
