@@ -23,41 +23,39 @@
 * Author: Artem Komyshan
 */
 
-#pragma once
+#include "tst_parallel.hpp"
 
-#include <cstddef>
-#include <memory>
+#include <gtest/gtest.h>
 
-namespace std14
-   {
-   template<typename T, T... Ints>
-   struct integer_sequence
-   {
-      using value_type = T;
-      static constexpr std::size_t size() { return sizeof...(Ints); }
-   };
-
-   template<std::size_t... Ints>
-   using index_sequence = integer_sequence<std::size_t, Ints...>;
-
-   template<typename T, std::size_t N, T... Is>
-   struct make_integer_sequence : make_integer_sequence<T, N-1, N-1, Is...> {};
-
-   template<typename T, T... Is>
-   struct make_integer_sequence<T, 0, Is...> : integer_sequence<T, Is...> {};
-
-   template<std::size_t N>
-   using make_index_sequence = make_integer_sequence<std::size_t, N>;
-
-   template<typename... T>
-   using index_sequence_for = make_index_sequence<sizeof...(T)>;
+int main(int argc, char *argv[])
+{
+   ::testing::InitGoogleTest(&argc, argv);
+   return RUN_ALL_TESTS();
+}
 
 
-   template <typename T, typename ...Args>
-   std::unique_ptr<T> make_unique(Args&&... args)
-   {
-      return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-   }
+//#include <iostream>
+////#include "utility/sequence.hpp"
+////#include "raii/multi_lock.hpp"
 
-   }
+//using namespace std;
 
+
+//void sequenceExemple()
+//{
+//   start([]
+//   {
+//       cout << "first void job \n";
+//       return std::make_tuple(6);
+//   }).next([](int i)
+//   {
+//       cout << "first int job " << i << "\n";
+//       return std::make_tuple(7);
+//   }).next([](int i)
+//   {
+//       cout << "second job " << i << "\n";
+//   }).next([]
+//   {
+//       cout << "second void job\n";
+//   });
+//}
