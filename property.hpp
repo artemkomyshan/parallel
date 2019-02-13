@@ -25,64 +25,70 @@
 
 #pragma once
 
-#include <thread>
+#include <utility>
 
-/**
- * Example
- * raii:join_thread ( []{ do work.. } );
- */
+#include "boost/optional.hpp"
 
-namespace parallel {
-namespace raii {
-
-enum class thread_exec
+template <typename T>
+class property
 {
-   join,
-   detach
-};
+   T     _value {};
+   bool  _valid {false};
 
-template <thread_exec d_action> class scoped_thread;
+public :
+   property() noexcept( noexcept( T() ) ) = default;
 
-using join_thread = scoped_thread<thread_exec::join>;
-using detach_thread = scoped_thread<thread_exec::detach>;
-
-template <thread_exec>
-class scoped_thread
-{
-   std::thread _t;
-
-public:
-   template <typename Func, typename ...Args>
-   scoped_thread( Func&& f, Args... args )
-   : _t( std::forward<Func>( f ), std::forward<Args>( args)... )
+   template< typename U>
+   property( U&& value )
+   : _value( std::forward<U>( value ) ), _valid( true )
    {   }
 
-   ~scoped_thread()
+   template< typename U>
+   property& operator=( U&& value )
    {
-      if ( _t.joinable() )
-         join_or_detach();
+      _value = std::forward<U>( value );
+      _valid = true;
+      return *this;
    }
 
-   scoped_thread( scoped_thread&& ) = default;
-   scoped_thread& operator=( scoped_thread&& ) = default;
+   bool is_valid() const noexcept
+   {
+      return _valid;
+   }
 
-   std::thread& get() { return _t; }
+   explicit operator bool() const noexcept
+   {
+      return is_valid();
+   }
+
+   T const& value() const
+   {
+      check();
+      return _value;
+   }
+
+   T& get_writable() noexcept
+   {
+      _valid = true;
+      return _value;
+   }
+
+   void invalidate() noexcept
+   {
+      _valid = false;
+   }
+
+   T&& release()
+   {
+      _valid = false;
+      return std::move( _value );
+   }
+
+   T const& value_or( T const& a ) const noexcept
+   {
+      return _valid ? _value : a;
+   }
 
 private:
-   void join_or_detach();
+   void check() const{}
 };
-
-template<>
-void scoped_thread<thread_exec::join>::join_or_detach()
-{
-   _t.join();
-}
-
-template<>
-void scoped_thread<thread_exec::detach>::join_or_detach()
-{
-   _t.detach();
-}
-
-}
-}

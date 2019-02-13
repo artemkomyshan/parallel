@@ -28,6 +28,7 @@
 #include <atomic>
 #include <vector>
 #include <functional>
+#include <boost/range/irange.hpp>
 #include "queue.hpp"
 #include "raii/scoped_thread.hpp"
 
@@ -46,8 +47,14 @@ class thread_pool
       while (!_done)
       {
          tTask task;
-         _work_q.wait_and_pop(task);
-         task();
+         if (_work_q.try_pop(task))
+         {
+            task();
+         }
+         else
+         {
+            std::this_thread::yield();
+         }
       }
    }
 
@@ -59,7 +66,7 @@ public:
       try
       {
          _threds.reserve(thread_counter);
-         for (size_t i = 0; i < thread_counter; ++i)
+         for (auto i : boost::irange(thread_counter))
             _threds.emplace_back(&thread_pool::worker_thred, this);
       }
       catch(...)

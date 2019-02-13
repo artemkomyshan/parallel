@@ -17,7 +17,8 @@ HEADERS += \
     utility/std14.hpp \
     containers/queue.hpp \
     containers/thread_pool.hpp \
-    draft/draft.hpp \
     raii/multi_lock.hpp \
     raii/scoped_thread.hpp \
-    test/tst_parallel.hpp
+    test/tst_parallel.hpp \
+    assert.hpp \
+    property.hpp

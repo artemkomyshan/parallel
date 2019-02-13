@@ -53,11 +53,58 @@ namespace std14
    using index_sequence_for = make_index_sequence<sizeof...(T)>;
 
 
-   template <typename T, typename ...Args>
-   std::unique_ptr<T> make_unique(Args&&... args)
+   template< class T >
+   using remove_extent_t = typename std::remove_extent<T>::type;
+
+   /// make_unique ///
+   namespace details
    {
-      return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+      template<typename T>
+      struct MakeUniq
+      {
+        typedef std::unique_ptr<T> single_object;
+      };
+
+      template<typename T>
+      struct MakeUniq<T[]>
+      {
+         typedef std::unique_ptr<T[]> array;
+      };
+
+      template<typename T, size_t _Bound>
+      struct MakeUniq<T[_Bound]>
+      {
+         struct invalid_type { };
+      };
    }
+
+   /**
+    * Constructs an object of type T and wraps it in a std::unique_ptr.
+    * The arguments args are passed to the constructor of T.
+    * @param args - list of arguments with which an instance of T will be constructed.
+    */
+   template<typename T, typename... Args>
+   inline typename details::MakeUniq<T>::single_object make_unique(Args&&... _Args)
+   {
+      return std::unique_ptr<T>(new T(std::forward<Args>(_Args)...));
+   }
+
+   /**
+    * Constructs an array of unknown bound T.
+    * This overload only participates in overload resolution if T is an array of unknown bound.
+    * @param size	- the size of the array to construct.
+    */
+   template<typename T>
+   inline typename details::MakeUniq<T>::array make_unique(size_t __num)
+   {
+      return std::unique_ptr<T>(new remove_extent_t<T>[__num]());
+   }
+
+   /**
+    *  Construction of arrays of known bound is disallowed.
+    */
+   template<typename T, typename... Args>
+   inline typename details::MakeUniq<T>::invalid_type make_unique(Args&&...) = delete;
 
    }
 

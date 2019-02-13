@@ -25,11 +25,77 @@
 
 #pragma once
 
-#include <gtest/gtest.h>
-#include <gmock/gmock-matchers.h>
-#include "raii/multi_lock.hpp"
+#include "gtest/gtest.h"
+#include "gmock/gmock-matchers.h"
 
+#include "boost/optional.hpp"
+#include "boost/range/irange.hpp"
+
+#include "raii/multi_lock.hpp"
+#include "raii/scoped_thread.hpp"
+#include "containers/thread_pool.hpp"
+#include "utility/sequence.hpp"
+#include "property.hpp"
+
+#include <iostream>
 using namespace testing;
+
+TEST(paralel, property)
+{
+   property<int> p;
+   EXPECT_EQ( false, p.is_valid() );
+
+   p = 5;
+   EXPECT_EQ( true, p.is_valid() );
+   EXPECT_EQ( 5, p.value() );
+
+   p.invalidate();
+   EXPECT_EQ( false, p.is_valid() );
+
+   int s = 8;
+   p = s;
+   EXPECT_EQ( true, static_cast<bool>( p ) );
+   EXPECT_EQ( 8, p.value() );
+
+   p.invalidate();
+
+   EXPECT_EQ( 10, p.value_or( 10 ) );
+}
+
+TEST(paralel, property_extract)
+{
+   struct movable
+   {
+      bool is_moved {false};
+      movable(){}
+
+      movable( movable&& o)
+      {
+         o.is_moved = true;
+      }
+
+      movable& operator=( movable&& o)
+      {
+         o.is_moved = true;
+         return*this;
+      }
+      movable( movable const& o)
+      {
+      }
+
+      movable& operator=( movable const& o)
+      {
+         return*this;
+      }
+   };
+
+
+   property<movable> p;
+   movable m = p.release();
+
+   EXPECT_EQ( true, p.value().is_moved );
+}
+
 
 TEST(paralel, paralel)
 {
@@ -58,4 +124,89 @@ TEST(paralel, paralel)
    }
 
    EXPECT_EQ(1, m1.unloc_num);
+
+   {
+      auto guards = parallel::raii::make_locks(m1, m2, m3);
+
+      EXPECT_EQ(2, m1.loc_num);
+   }
+
+   EXPECT_EQ(2, m1.unloc_num);
 }
+
+
+TEST(paralel, scoped_thread)
+{
+   {
+      parallel::raii::detach_thread t_d([](int i)
+      {
+            EXPECT_EQ(1, i);
+      }, 1);
+
+      parallel::raii::join_thread t_j([](int i)
+      {
+            EXPECT_EQ(1, i);
+      }, 1);
+   }
+}
+
+
+TEST(paralel, thread_pool)
+{
+   std::atomic_int count = {0};
+   {
+      std::condition_variable cv;
+      std::mutex m;
+
+      parallel::thread_pool pool;
+      for (auto i : boost::irange(std::thread::hardware_concurrency()))
+      {
+         pool.submit([&count, &cv, &m]{
+            static thread_local int t = [&count, &cv, &m]{
+               ++count;
+               std::cout << count << "c ";
+
+               if (count == std::thread::hardware_concurrency())
+               {
+                  std::cout << count << "v ";
+                  cv.notify_one();
+               }
+               else
+               {
+                  std::unique_lock<std::mutex> l(m);
+                  cv.wait(l);
+                  cv.notify_one();
+               }
+               return 0;
+            }();
+
+         });
+      }
+
+      std::unique_lock<std::mutex> l(m);
+      cv.wait(l);
+   }
+   std::cout << std::endl;
+   EXPECT_EQ(std::thread::hardware_concurrency(), count);
+}
+
+/**
+TEST(paralel, sequence)
+{
+   start([]
+   {
+       std::cout << "first void job \n";
+       return std::make_tuple(6);
+   }).next([](int i)
+   {
+      std:: cout << "first int job " << i << "\n";
+       return std::make_tuple(7);
+   }).next([](int i)
+   {
+       std::cout << "second job " << i << "\n";
+   }).next([]
+   {
+       std::cout << "second void job\n";
+   });
+}
+*/

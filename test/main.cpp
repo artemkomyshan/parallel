@@ -32,30 +32,3 @@ int main(int argc, char *argv[])
    ::testing::InitGoogleTest(&argc, argv);
    return RUN_ALL_TESTS();
 }
-
-
-//#include <iostream>
-////#include "utility/sequence.hpp"
-////#include "raii/multi_lock.hpp"
-
-//using namespace std;
-
-
-//void sequenceExemple()
-//{
-//   start([]
-//   {
-//       cout << "first void job \n";
-//       return std::make_tuple(6);
-//   }).next([](int i)
-//   {
-//       cout << "first int job " << i << "\n";
-//       return std::make_tuple(7);
-//   }).next([](int i)
-//   {
-//       cout << "second job " << i << "\n";
-//   }).next([]
-//   {
-//       cout << "second void job\n";
-//   });
-//}

@@ -67,7 +67,6 @@ public:
         return sequence<R> (std::forward<Func>(next), std::get<I>(std::forward<std::tuple<Args...>>(result))... );
     }
 
-
 private:
     std::tuple<Ts...> _result;
 };
