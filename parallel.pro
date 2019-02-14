@@ -1,7 +1,7 @@
 include(gtest_dependency.pri)
 
 TEMPLATE = app
-CONFIG += console c++11
+CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -14,11 +14,13 @@ HEADERS += \
     sequence.hpp \
     utility/sequence.hpp \
     utility/thread_raii.hpp \
-    utility/std14.hpp \
     containers/queue.hpp \
     containers/thread_pool.hpp \
     raii/multi_lock.hpp \
     raii/scoped_thread.hpp \
     test/tst_parallel.hpp \
     assert.hpp \
-    property.hpp
+    property.hpp \
+    utility/not_null.hpp \
+    utility/not_null.hpp \
+    utility/property.hpp

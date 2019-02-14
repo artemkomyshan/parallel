@@ -25,8 +25,11 @@
 
 #pragma once
 
+
 #include "gtest/gtest.h"
 #include "gmock/gmock-matchers.h"
+
+#include <memory>
 
 #include "boost/optional.hpp"
 #include "boost/range/irange.hpp"
@@ -35,7 +38,8 @@
 #include "raii/scoped_thread.hpp"
 #include "containers/thread_pool.hpp"
 #include "utility/sequence.hpp"
-#include "property.hpp"
+#include "utility/property.hpp"
+#include "utility/not_null.hpp"
 
 #include <iostream>
 using namespace testing;
@@ -62,7 +66,7 @@ TEST(paralel, property)
    EXPECT_EQ( 10, p.value_or( 10 ) );
 }
 
-TEST(paralel, property_extract)
+TEST(paralel, move)
 {
    struct movable
    {
@@ -90,10 +94,24 @@ TEST(paralel, property_extract)
    };
 
 
-   property<movable> p;
+   property<movable> p {movable{}};
    movable m = p.release();
 
-   EXPECT_EQ( true, p.value().is_moved );
+   EXPECT_EQ( false, p.is_valid() );
+   EXPECT_EQ( true, p.get_writable().is_moved );
+
+   p = movable{};
+
+   EXPECT_EQ( true, p.is_valid() );
+
+   std::move( p ).value();
+   EXPECT_EQ( false, p.is_valid() );
+   EXPECT_EQ( true, p.get_writable().is_moved );
+
+   p = movable{};
+   std::move( p ).value_or( m );
+   EXPECT_EQ( false, p.is_valid() );
+   EXPECT_EQ( true, p.get_writable().is_moved );
 }
 
 
@@ -134,6 +152,16 @@ TEST(paralel, paralel)
    EXPECT_EQ(2, m1.unloc_num);
 }
 
+TEST(paralel, not_null)
+{
+   not_null<std::shared_ptr<int>> nnsp = std::make_shared<int>( 6 );
+   nnsp.get();
+   EXPECT_EQ( true, static_cast<bool>( nnsp.get() ) );
+
+   not_null<std::unique_ptr<int>> nnup = std::make_unique<int>( 6 );
+   nnup.get();
+   EXPECT_EQ( true, static_cast<bool>( nnup.get() ) );
+}
 
 TEST(paralel, scoped_thread)
 {

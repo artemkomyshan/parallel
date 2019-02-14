@@ -26,8 +26,14 @@
 #pragma once
 
 #include <utility>
+#include "assert.hpp"
 
-#include "boost/optional.hpp"
+/**
+* TODO:
+* 1. implementation of check should depend on template parameter;
+* 2. default initialization shouldn't initialize _value;
+* 3. implement pointer-like interface;
+ */
 
 template <typename T>
 class property
@@ -38,12 +44,12 @@ class property
 public :
    property() noexcept( noexcept( T() ) ) = default;
 
-   template< typename U>
+   template < typename U >
    property( U&& value )
    : _value( std::forward<U>( value ) ), _valid( true )
    {   }
 
-   template< typename U>
+   template < typename U >
    property& operator=( U&& value )
    {
       _value = std::forward<U>( value );
@@ -61,10 +67,17 @@ public :
       return is_valid();
    }
 
-   T const& value() const
+   T const& value() const &
    {
       check();
       return _value;
+   }
+
+   T&& value() &&
+   {
+      check();
+      _valid = false;
+      return std::move( _value );
    }
 
    T& get_writable() noexcept
@@ -80,15 +93,51 @@ public :
 
    T&& release()
    {
+      check();
       _valid = false;
       return std::move( _value );
    }
 
-   T const& value_or( T const& a ) const noexcept
+   template < typename U >
+   T  value_or( U && v ) const &
    {
-      return _valid ? _value : a;
+      if ( is_valid() )
+         return _value;
+      else
+         return std::forward<U>( v );
+   }
+
+   template < typename U >
+   T value_or( U&& v ) &&
+   {
+      _valid = false;
+
+      if ( is_valid() )
+         return std::move( _value );
+      else
+         return std::forward<U>( v );
    }
 
 private:
-   void check() const{}
+   void check() const
+   {
+      Ensures( _valid );
+   }
 };
+
+template <typename T>
+void swap( property< T >& l,   property< T >& r)
+{
+   const bool hasL = l.is_valid();
+   const bool hasR = r.is_valid();
+
+   if ( !hasL && !hasR )
+      return;
+
+   std::swap( l.get_writable(), r.get_writable() );
+
+   if( !hasL )
+       l.invalidate() ;
+   else if( !hasR )
+       r.invalidate() ;
+}
