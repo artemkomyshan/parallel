@@ -24,8 +24,10 @@
 */
 
 #include "tst_parallel.hpp"
-
 #include <gtest/gtest.h>
+
+#include <iostream>
+#include "utility/property.hpp"
 
 int main(int argc, char *argv[])
 {

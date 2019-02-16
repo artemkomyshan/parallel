@@ -57,7 +57,7 @@ public:
     template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
     not_null(U&& u) : ptr_(std::forward<U>(u))
     {
-        Expects(ptr_ != nullptr);
+        Expects(ptr_);
     }
 
     template <typename U, typename = std::enable_if_t<std::is_convertible<U, T>::value>>
@@ -71,13 +71,13 @@ public:
 
     T const& get() const
     {
-        Ensures(ptr_ != nullptr);
+        Ensures(ptr_);
         return ptr_;
     }
 
     T& get()
     {
-        Ensures(ptr_ != nullptr);
+        Ensures(ptr_);
         return ptr_;
     }
 

@@ -35,7 +35,7 @@ struct null_pointer_error : public std::logic_error
 
 #define CONTRACT_CHECK(type, cond)                                                            \
    (cond ? static_cast<void>(0)                                                               \
-      : throw null_pointer_error("parallel: " type " failure, cause - unexpected null pointer"))
+      : throw null_pointer_error("parallel: " type " failure, cause - unexpected call"))
 
 #define Expects(cond) CONTRACT_CHECK("Precondition", cond)
 #define Ensures(cond) CONTRACT_CHECK("Postcondition", cond)

@@ -31,28 +31,102 @@
 /**
 * TODO:
 * 1. implementation of check should depend on template parameter;
-* 2. default initialization shouldn't initialize _value;
-* 3. implement pointer-like interface;
+* 3. implement pointer-like issnterface;
  */
+
+template<typename From, typename To>
+using allowIfConvertible = std::enable_if_t<std::is_convertible<From, To>::value>;
 
 template <typename T>
 class property
 {
-   T     _value {};
-   bool  _valid {false};
+   bool  _valid;
+
+   union storage
+   {
+      T _value;
+
+      storage () noexcept {}
+      ~storage() noexcept {}
+   } _storage;
+
+
+   void clear()
+   {
+      if ( _valid )
+      {
+         _storage._value.T::~T();
+         _valid = false;
+      }
+   }
 
 public :
-   property() noexcept( noexcept( T() ) ) = default;
+   property() noexcept : _valid( false )
+   { }
 
-   template < typename U >
+   ~property()
+   {
+      clear();
+   }
+
+   property( property const& rhs)
+   {
+      if ( rhs.is_valid() )
+      {
+          new (&_storage._value) T ( rhs.value() );
+         _valid = true;
+      }
+   }
+
+   property( property&& rhs)
+   {
+      if ( rhs.is_valid() )
+      {
+         new (&_storage._value) T ( std::move( rhs ).value() );
+         _valid = true;
+      }
+   }
+
+   template < typename U, typename = allowIfConvertible<U, T> >
    property( U&& value )
-   : _value( std::forward<U>( value ) ), _valid( true )
-   {   }
+   :  _valid( true )
+   {
+      new (&_storage._value) T ( std::forward<U>( value ) );
+   }
 
-   template < typename U >
+   property& operator=( property const& rhs )
+   {
+      if ( is_valid() && !rhs.is_valid() )
+         clear();
+      else if ( rhs.is_valid() )
+      {
+         if ( !is_valid() )
+            _valid = true;
+
+         _storage._value = rhs.value();
+      }
+
+      return *this;
+   }
+   property& operator=( property&& rhs )
+   {
+      if ( is_valid() && !rhs.is_valid() )
+         clear();
+      else if ( rhs.is_valid() )
+      {
+         if ( !is_valid() )
+            _valid = true;
+
+         _storage._value = std::move( rhs ).value();
+      }
+
+      return *this;
+   }
+
+   template < typename U, typename = allowIfConvertible<U, T> >
    property& operator=( U&& value )
    {
-      _value = std::forward<U>( value );
+     new (&_storage._value) T ( std::forward<U>( value ) );
       _valid = true;
       return *this;
    }
@@ -70,50 +144,54 @@ public :
    T const& value() const &
    {
       check();
-      return _value;
+      return _storage._value;
    }
 
    T&& value() &&
    {
       check();
       _valid = false;
-      return std::move( _value );
+      return std::move( _storage._value );
    }
 
    T& get_writable() noexcept
    {
-      _valid = true;
-      return _value;
+      if ( _valid )
+      {
+         new (&_storage._value) T ();
+         _valid = true;
+      }
+      return _storage._value;
    }
 
    void invalidate() noexcept
    {
-      _valid = false;
+      clear();
    }
 
    T&& release()
    {
       check();
       _valid = false;
-      return std::move( _value );
+      return std::move( _storage._value );
    }
 
-   template < typename U >
+   template < typename U, typename = allowIfConvertible<U, T> >
    T  value_or( U && v ) const &
    {
       if ( is_valid() )
-         return _value;
+         return _storage._value;
       else
          return std::forward<U>( v );
    }
 
-   template < typename U >
+   template < typename U, typename = allowIfConvertible<U, T> >
    T value_or( U&& v ) &&
    {
       _valid = false;
 
       if ( is_valid() )
-         return std::move( _value );
+         return std::move( _storage._value );
       else
          return std::forward<U>( v );
    }
@@ -126,7 +204,7 @@ private:
 };
 
 template <typename T>
-void swap( property< T >& l,   property< T >& r)
+void swap( property< T >& l,  property< T >& r)
 {
    const bool hasL = l.is_valid();
    const bool hasR = r.is_valid();
@@ -140,4 +218,113 @@ void swap( property< T >& l,   property< T >& r)
        l.invalidate() ;
    else if( !hasR )
        r.invalidate() ;
+}
+
+template <typename T>
+bool operator==( const property<T>& x, property<T> const& y )
+{
+  return bool( x ) != bool( y ) ? false : bool ( x ) == false ? true : x.value() == y.value();
+}
+
+template <typename T>
+bool operator!=( property<T> const& x, property<T> const& y )
+{
+  return !( x == y );
+}
+
+template <typename T>
+bool operator<( property<T> const& x, property<T> const& y )
+{
+  return ( !y ) ? false : ( !x ) ? true : x.value() < y.value();
+}
+
+template <typename T>
+bool operator>( property<T> const& x, property<T> const& y )
+{
+  return ( y < x );
+}
+
+template <typename T>
+bool operator<= ( const property<T>& x, property<T> const& y )
+{
+  return !( y < x );
+}
+
+template <typename T>
+bool operator>=( property<T> const& x, property<T> const& y )
+{
+  return !( x < y );
+}
+
+
+template <typename T>
+bool operator==( const property<T>& x, T const& v )
+{
+  return bool( x ) ? x.value() == v : false;
+}
+
+template <typename T>
+bool operator==( T const& v, property<T> const& x )
+{
+  return bool( x ) ? v == x.value() : false;
+}
+
+template <typename T>
+bool operator!=( const property<T>& x, T const& v )
+{
+  return bool( x ) ? x.value() != v : true;
+}
+
+template <typename T>
+bool operator!=( T const& v, property<T> const& x )
+{
+  return bool( x ) ? v != x.value() : true;
+}
+
+template <typename T>
+bool operator<( const property<T>& x, T const& v )
+{
+  return bool( x ) ? x.value() < v : true;
+}
+
+template <typename T>
+bool operator>( T const& v, property<T> const& x )
+{
+  return bool( x ) ? v > x.value() : true;
+}
+
+template <typename T>
+bool operator>( const property<T>& x, T const& v )
+{
+  return bool( x ) ? x.value() > v : false;
+}
+
+template <typename T>
+bool operator<( T const& v, property<T> const& x )
+{
+  return bool( x ) ? v < x.value() : false;
+}
+
+template <typename T>
+bool operator>=( const property<T>& x, T const& v )
+{
+  return bool( x ) ? x.value() >= v : false;
+}
+
+template <typename T>
+bool operator<=( T const& v, property<T> const& x )
+{
+  return bool( x ) ? v <= x.value() : false;
+}
+
+template <typename T>
+bool operator<=( const property<T>& x, T const& v )
+{
+  return bool( x ) ? x.value() <= v : true;
+}
+
+template <typename T>
+bool operator>=( T const& v, property<T> const& x )
+{
+  return bool( x ) ? v >= x.value() : true;
 }
