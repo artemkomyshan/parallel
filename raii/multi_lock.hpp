@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Parallel
+* Copyright (c) 2018 Artem Komyshan
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -32,16 +32,30 @@ namespace parallel {
 namespace raii {
    /**
  * @brief The lock_guards class
- * lock_guards is a mutexes wrapper that provides a convenient RAII-style mechanism for owning a mutexes for the duration of a scoped block.
- * lock_guards use a deadlock avoidance algorithm to avoid deadlock.
+ * multi_lock is a mutexes wrapper that provides a convenient RAII-style mechanism for owning a few mutexes for the duration of a scoped block.
+ * multi_lock use a deadlock avoidance algorithm to avoid deadlock.
  * Example:
 
+  // Code with multi_lock
    std::mutex m1;
    std::recursive_mutex m2;
 
    void do_work()
    {
-      auto guards = std_ext::make_locks(m1, m2);
+      auto guards = make_locks(m1, m2);
+      //do rest of work
+   }
+/////////////////////////////////////////////////////////////////////////
+
+   // Code without multi_lock
+   std::mutex m1;
+   std::recursive_mutex m2;
+
+   void do_work()
+   {
+      std::lock(m1, m2);
+      std::lock_guard<std::mutex> lk1(m1, std::adopt_lock);
+      std::lock_guard<std::recursive_mutex> lk2(m2, std::adopt_lock);
       //do rest of work
    }
  */
