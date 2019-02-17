@@ -34,7 +34,7 @@ using allowIfConvertible = std::enable_if_t<std::is_convertible<From, To>::value
 
 struct except_on_fail{};
 
-template <typename T>
+template <typename A>
 void action_on_fail();
 
 struct bad_property_access : public std::logic_error
@@ -79,7 +79,8 @@ public :
       clear();
    }
 
-   property( property const& rhs)
+   template <typename OA>
+   property( property<T, OA> const& rhs)
    {
       if ( rhs.is_valid() )
       {
@@ -88,7 +89,8 @@ public :
       }
    }
 
-   property( property&& rhs)
+   template <typename OA>
+   property( property<T, OA>&& rhs)
    {
       if ( rhs.is_valid() )
       {
@@ -104,7 +106,8 @@ public :
       new (&_storage._value) T ( std::forward<U>( value ) );
    }
 
-   property& operator=( property const& rhs )
+   template <typename OA>
+   property& operator=( property<OA> const& rhs )
    {
       if ( is_valid() && !rhs.is_valid() )
          clear();
@@ -118,7 +121,9 @@ public :
 
       return *this;
    }
-   property& operator=( property&& rhs )
+
+   template <typename OA>
+   property& operator=( property<T, OA>&& rhs )
    {
       if ( is_valid() && !rhs.is_valid() )
          clear();
@@ -226,8 +231,8 @@ private:
 
 };
 
-template <typename T>
-void swap( property< T >& l,  property< T >& r)
+template <typename T, typename A, typename OA>
+void swap( property< T, A >& l,  property< T, OA >& r)
 {
    const bool hasL = l.is_valid();
    const bool hasR = r.is_valid();
@@ -243,111 +248,111 @@ void swap( property< T >& l,  property< T >& r)
        r.invalidate() ;
 }
 
-template <typename T>
-bool operator==( const property<T>& x, property<T> const& y )
+template <typename T, typename A, typename OA>
+bool operator==( property<T, A> const& x, property<T, OA> const& y )
 {
   return bool( x ) != bool( y ) ? false : bool ( x ) == false ? true : x.value() == y.value();
 }
 
-template <typename T>
-bool operator!=( property<T> const& x, property<T> const& y )
+template <typename T, typename A, typename OA>
+bool operator!=( property<T, A> const& x, property<T, OA> const& y )
 {
   return !( x == y );
 }
 
-template <typename T>
-bool operator<( property<T> const& x, property<T> const& y )
+template <typename T, typename A, typename OA>
+bool operator<( property<T, A> const& x, property<T, OA> const& y )
 {
   return ( !y ) ? false : ( !x ) ? true : x.value() < y.value();
 }
 
-template <typename T>
-bool operator>( property<T> const& x, property<T> const& y )
+template <typename T, typename A, typename OA>
+bool operator>( property<T, A> const& x, property<T, OA> const& y )
 {
   return ( y < x );
 }
 
-template <typename T>
-bool operator<= ( const property<T>& x, property<T> const& y )
+template <typename T, typename A, typename OA>
+bool operator<= ( const property<T, A>& x, property<T, OA> const& y )
 {
   return !( y < x );
 }
 
-template <typename T>
-bool operator>=( property<T> const& x, property<T> const& y )
+template <typename T, typename A, typename OA>
+bool operator>=( property<T, A> const& x, property<T, OA> const& y )
 {
   return !( x < y );
 }
 
 
-template <typename T>
-bool operator==( const property<T>& x, T const& v )
+template <typename T, typename A>
+bool operator==( const property<T, A>& x, T const& v )
 {
   return bool( x ) ? x.value() == v : false;
 }
 
-template <typename T>
-bool operator==( T const& v, property<T> const& x )
+template <typename T, typename A>
+bool operator==( T const& v, property<T, A> const& x )
 {
   return bool( x ) ? v == x.value() : false;
 }
 
-template <typename T>
-bool operator!=( const property<T>& x, T const& v )
+template <typename T, typename A>
+bool operator!=( const property<T, A>& x, T const& v )
 {
   return bool( x ) ? x.value() != v : true;
 }
 
-template <typename T>
-bool operator!=( T const& v, property<T> const& x )
+template <typename T, typename A>
+bool operator!=( T const& v, property<T, A> const& x )
 {
   return bool( x ) ? v != x.value() : true;
 }
 
-template <typename T>
-bool operator<( const property<T>& x, T const& v )
+template <typename T, typename A>
+bool operator<( const property<T, A>& x, T const& v )
 {
   return bool( x ) ? x.value() < v : true;
 }
 
-template <typename T>
-bool operator>( T const& v, property<T> const& x )
+template <typename T, typename A>
+bool operator>( T const& v, property<T, A> const& x )
 {
   return bool( x ) ? v > x.value() : true;
 }
 
-template <typename T>
-bool operator>( const property<T>& x, T const& v )
+template <typename T, typename A>
+bool operator>( const property<T, A>& x, T const& v )
 {
   return bool( x ) ? x.value() > v : false;
 }
 
-template <typename T>
-bool operator<( T const& v, property<T> const& x )
+template <typename T, typename A>
+bool operator<( T const& v, property<T, A> const& x )
 {
   return bool( x ) ? v < x.value() : false;
 }
 
-template <typename T>
-bool operator>=( const property<T>& x, T const& v )
+template <typename T, typename A>
+bool operator>=( const property<T, A>& x, T const& v )
 {
   return bool( x ) ? x.value() >= v : false;
 }
 
-template <typename T>
-bool operator<=( T const& v, property<T> const& x )
+template <typename T, typename A>
+bool operator<=( T const& v, property<T, A> const& x )
 {
   return bool( x ) ? v <= x.value() : false;
 }
 
-template <typename T>
-bool operator<=( const property<T>& x, T const& v )
+template <typename T, typename A>
+bool operator<=( const property<T, A>& x, T const& v )
 {
   return bool( x ) ? x.value() <= v : true;
 }
 
-template <typename T>
-bool operator>=( T const& v, property<T> const& x )
+template <typename T, typename A>
+bool operator>=( T const& v, property<T, A> const& x )
 {
   return bool( x ) ? v >= x.value() : true;
 }

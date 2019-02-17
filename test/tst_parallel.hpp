@@ -72,6 +72,24 @@ inline void action_on_fail<no_action_on_fail>()
 {
 };
 
+TEST(paralel, property_action_on_fail)
+{
+    property<int> pex{1};
+    property<int, no_action_on_fail> pnon{2};
+    property<int, assert_on_fail> pas{3};
+
+    pex = pnon;
+    pnon = std::move( pas );
+
+    EXPECT_EQ( true, pex.is_valid() );
+    EXPECT_EQ( 2, pex.value() );
+
+    EXPECT_EQ( true, pnon.is_valid() );
+    EXPECT_EQ( 3, pnon.value() );
+
+    EXPECT_EQ( false, pas.is_valid() );
+}
+
 TEST(paralel, property_move)
 {
    struct movable
