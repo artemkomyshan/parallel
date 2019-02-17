@@ -25,7 +25,6 @@
 
 #pragma once
 
-
 #include "gtest/gtest.h"
 #include "gmock/gmock-matchers.h"
 
@@ -64,59 +63,73 @@ TEST(paralel, property)
    p.invalidate();
 
    EXPECT_EQ( 10, p.value_or( 10 ) );
-
-   property<int> p1 = 5;
-   property<int> p2 ( std::move( p1 ) );
-
-   EXPECT_EQ( 5, p2.value() );
 }
 
-TEST(paralel, move)
+struct no_action_on_fail{};
+
+template <>
+inline void action_on_fail<no_action_on_fail>()
+{
+};
+
+TEST(paralel, property_move)
 {
    struct movable
    {
       bool is_moved {false};
-      movable(){}
+      movable(){ /*std::cout << "construct" << std::endl;*/ }
 
       movable( movable&& o)
       {
+         //std::cout << "move construct" << std::endl;
          o.is_moved = true;
       }
 
       movable& operator=( movable&& o)
       {
+         //std::cout << "move =" << std::endl;
          o.is_moved = true;
          return*this;
       }
       movable( movable const&)
       {
+         //std::cout << "copy construct" << std::endl;
       }
 
       movable& operator=( movable const&)
       {
+         //std::cout << "copy =" << std::endl;
          return*this;
       }
    };
 
-
-   property<movable> p {movable{}};
+   property<movable, no_action_on_fail> p {movable{}};
    movable m = p.release();
 
    EXPECT_EQ( false, p.is_valid() );
-   //EXPECT_EQ( true, p.get_writable().is_moved );
+   EXPECT_EQ( true, p.value().is_moved );
 
    p = movable{};
 
    EXPECT_EQ( true, p.is_valid() );
 
-   std::move( p ).value();
+   m = std::move( p ).value();
    EXPECT_EQ( false, p.is_valid() );
-   //EXPECT_EQ( true, p.get_writable().is_moved );
+   EXPECT_EQ( true, p.value().is_moved );
 
-   p = movable{};
-   std::move( p ).value_or( m );
+
+   p = movable();
+   EXPECT_EQ( true, p.is_valid() );
+
+   m = std::move( p ).value_or( movable{} );
    EXPECT_EQ( false, p.is_valid() );
-   //EXPECT_EQ( true, p.get_writable().is_moved );
+   EXPECT_EQ( true, p.value().is_moved );
+
+
+   property<int> p1 = 5;
+   property<int> p2 ( std::move( p1 ) );
+
+   EXPECT_EQ( 5, p2.value() );
 }
 
 

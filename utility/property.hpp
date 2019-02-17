@@ -25,19 +25,39 @@
 
 #pragma once
 
+#include <stdexcept>
 #include <utility>
-#include "assert.hpp"
-
-/**
-* TODO:
-* 1. implementation of check should depend on template parameter;
-* 3. implement pointer-like issnterface;
- */
+#include <assert.h>
 
 template<typename From, typename To>
 using allowIfConvertible = std::enable_if_t<std::is_convertible<From, To>::value>;
 
+struct except_on_fail{};
+
 template <typename T>
+void action_on_fail();
+
+struct bad_property_access : public std::logic_error
+{
+    explicit bad_property_access(char const* const message) : std::logic_error(message) {}
+};
+
+template <>
+inline void action_on_fail<except_on_fail>()
+{
+   throw bad_property_access("parallel: failure, cause - bad_property_access");
+};
+
+
+struct assert_on_fail{};
+
+template <>
+inline void action_on_fail<assert_on_fail>()
+{
+    assert( false );
+};
+
+template <typename T, typename A = except_on_fail>
 class property
 {
    bool  _valid;
@@ -49,16 +69,6 @@ class property
       storage () noexcept {}
       ~storage() noexcept {}
    } _storage;
-
-
-   void clear()
-   {
-      if ( _valid )
-      {
-         _storage._value.T::~T();
-         _valid = false;
-      }
-   }
 
 public :
    property() noexcept : _valid( false )
@@ -188,19 +198,32 @@ public :
    template < typename U, typename = allowIfConvertible<U, T> >
    T value_or( U&& v ) &&
    {
-      _valid = false;
-
       if ( is_valid() )
+      {
+         _valid = false;
          return std::move( _storage._value );
+      }
       else
          return std::forward<U>( v );
    }
 
 private:
+
+   void clear()
+   {
+      if ( _valid )
+      {
+         _storage._value.T::~T();
+         _valid = false;
+      }
+   }
+
    void check() const
    {
-      Ensures( _valid );
+      if ( !_valid )
+         action_on_fail<A>();
    }
+
 };
 
 template <typename T>
