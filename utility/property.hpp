@@ -84,7 +84,7 @@ public :
    {
       if ( rhs.is_valid() )
       {
-          new (&_storage._value) T ( rhs.value() );
+          new ( &_storage._value ) T ( rhs.value() );
          _valid = true;
       }
    }
@@ -94,29 +94,33 @@ public :
    {
       if ( rhs.is_valid() )
       {
-         new (&_storage._value) T ( std::move( rhs ).value() );
+         new ( &_storage._value ) T ( std::move( rhs ).value() );
          _valid = true;
       }
    }
 
    template < typename U, typename = allowIfConvertible<U, T> >
    property( U&& value )
-   :  _valid( true )
+   :  _valid( true ), _storage()
    {
-      new (&_storage._value) T ( std::forward<U>( value ) );
+      new ( &_storage._value ) T ( std::forward<U>( value ) );
    }
 
    template <typename OA>
-   property& operator=( property<OA> const& rhs )
+   property& operator=( property<T, OA> const& rhs )
    {
+
       if ( is_valid() && !rhs.is_valid() )
          clear();
       else if ( rhs.is_valid() )
       {
          if ( !is_valid() )
+         {
+            new ( &_storage._value ) T ( rhs.value() );
             _valid = true;
-
-         _storage._value = rhs.value();
+         }
+         else
+            _storage._value = rhs.value();
       }
 
       return *this;
@@ -130,18 +134,26 @@ public :
       else if ( rhs.is_valid() )
       {
          if ( !is_valid() )
+         {
+            new ( &_storage._value ) T ( std::forward<property<T, OA>>( rhs ).value() );
             _valid = true;
-
-         _storage._value = std::move( rhs ).value();
+         }
+         else
+            _storage._value = std::forward<property<T, OA>>( rhs ).value();
       }
 
       return *this;
    }
 
+   property& operator=( property const& rhs )
+   {
+      return operator=<A>(rhs);
+   }
+
    template < typename U, typename = allowIfConvertible<U, T> >
    property& operator=( U&& value )
    {
-     new (&_storage._value) T ( std::forward<U>( value ) );
+     new ( &_storage._value ) T ( std::forward<U>( value ) );
       _valid = true;
       return *this;
    }
@@ -171,9 +183,9 @@ public :
 
    T& get_writable() noexcept
    {
-      if ( _valid )
+      if ( is_valid() )
       {
-         new (&_storage._value) T ();
+         new ( &_storage._value ) T ();
          _valid = true;
       }
       return _storage._value;
@@ -216,7 +228,7 @@ private:
 
    void clear()
    {
-      if ( _valid )
+      if ( is_valid() )
       {
          _storage._value.T::~T();
          _valid = false;
@@ -225,10 +237,9 @@ private:
 
    void check() const
    {
-      if ( !_valid )
+      if ( !is_valid() )
          action_on_fail<A>();
    }
-
 };
 
 template <typename T, typename A, typename OA>
