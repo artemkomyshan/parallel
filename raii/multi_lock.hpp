@@ -60,23 +60,24 @@ namespace raii {
    }
  */
 
-template <typename T>
-class unlock_guard
-{
-   T& _mutex;
-public:
-   unlock_guard(T& mutex) noexcept
-   : _mutex(mutex)
-   {   }
-   ~unlock_guard()
-   {
-      _mutex.unlock();
-   }
-};
 
 template <typename ...Args>
 class multi_lock
 {
+    template <typename T>
+    class unlock_guard
+    {
+       T& _mutex;
+    public:
+       unlock_guard(T& mutex) noexcept
+       : _mutex(mutex)
+       {   }
+       ~unlock_guard()
+       {
+          _mutex.unlock();
+       }
+    };
+
    std::tuple<unlock_guard<Args>...> _guards;
 public:
    multi_lock(Args&... args) : _guards(std::tuple<unlock_guard<Args>...>(args...))

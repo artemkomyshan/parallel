@@ -30,9 +30,6 @@
 
 #include <memory>
 
-#include "boost/optional.hpp"
-#include "boost/range/irange.hpp"
-
 #include "raii/multi_lock.hpp"
 #include "raii/scoped_thread.hpp"
 #include "containers/thread_pool.hpp"
@@ -175,6 +172,7 @@ TEST(paralel, paralel)
       auto guards = parallel::raii::make_locks(m1, m2, m3);
 
       EXPECT_EQ(1, m1.loc_num);
+      EXPECT_EQ(0, m1.unloc_num);
    }
 
    EXPECT_EQ(1, m1.unloc_num);
