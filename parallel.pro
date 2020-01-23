@@ -4,8 +4,10 @@ TEMPLATE = app
 CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
+LIBS += -pthread
 
-INCLUDEPATH += "C:\Program Files\boost\boost_1_68_0"
+INCLUDEPATH += "/home/artem/Artem/googletest/googletest"
+INCLUDEPATH += "/home/artem/Artem/boost_1_72_0"
 
 SOURCES += \
     test/main.cpp
